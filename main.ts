@@ -1,5 +1,5 @@
 import { buildDossier } from './vendor/makefun-game.ts';
-import { cpSync, mkdirSync, writeFileSync, existsSync } from 'node:fs';
+import { cpSync, mkdirSync, writeFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 const outDir = process.env.MAKEFUN_OUTPUT_DIR || '/output';
@@ -18,4 +18,26 @@ const dossier = buildDossier(outDir, {
 });
 
 writeFileSync(join(outDir, 'dossier.json'), dossier);
-console.log('Dossier successfully written to', join(outDir, 'dossier.json'));
+
+function countFiles(dir: string): number {
+  let count = 0;
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (entry.isDirectory()) {
+      count += countFiles(join(dir, entry.name));
+    } else {
+      count++;
+    }
+  }
+  return count;
+}
+
+const filesCopied = countFiles(outDir);
+const dossierBytes = Buffer.byteLength(dossier, 'utf8');
+
+const expectedScreenshots = ['1-chase.jpg', '2-city.jpg', '3-mission.jpg', '4-start.jpg'];
+const missingScreenshots = expectedScreenshots.filter(f => !existsSync(join(outDir, 'screenshots', f)));
+if (missingScreenshots.length > 0) {
+  throw new Error(`Missing required screenshot(s): ${missingScreenshots.join(', ')}`);
+}
+
+console.log(`Summary: files copied = ${filesCopied}, dossier bytes = ${dossierBytes}`);

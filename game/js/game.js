@@ -153,10 +153,18 @@
     camera.x += (targetX - camera.x) * 0.1;
     camera.y += (targetY - camera.y) * 0.1;
 
-    // Health checks
+    // Health checks / GameOver
     if (player.health <= 0) {
-      gameState = 'wasted';
-      showOverlay("WASTED", "Busted in San Veridia", "TRY AGAIN", startGame);
+      let bestScore = parseInt(localStorage.getItem('gta6_best_score') || '0', 10);
+      if (player.money > bestScore) {
+        bestScore = player.money;
+        try { localStorage.setItem('gta6_best_score', bestScore); } catch (e) {}
+      }
+      const isBusted = Police.getWantedStars() > 0;
+      gameState = isBusted ? 'busted' : 'wasted';
+      const title = isBusted ? 'BUSTED' : 'WASTED';
+      const subtitle = `Money Earned: $${player.money.toLocaleString()} | Best Score: $${bestScore.toLocaleString()}`;
+      showOverlay(title, subtitle, 'TRY AGAIN', startGame);
     }
 
     HUD.update(player, inCar, cars[activeCarIndex], Police.getWantedStars(), Missions.getInfo());
